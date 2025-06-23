@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -23,6 +23,12 @@ export default function CapacityAppPrototype() {
 
   const normativeThreshold = 100; // Neurotypical reference level (100%)
 
+  useEffect(() => {
+    // Initialize metrics on mount
+    updateMetrics(tasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAddTask = () => {
     if (!taskName || taskLoad <= 0 || taskDuration <= 0) return;
     const newTask = { id: Date.now(), name: taskName, load: taskLoad, duration: taskDuration };
@@ -41,7 +47,7 @@ export default function CapacityAppPrototype() {
     setCapacity(scaled);
     const now = new Date();
     const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-    setHistory(prev => [{ timestamp, capacity: scaled, tasks: taskList.length, totalTime }, ...prev]);
+    setHistory(prev => ([{ timestamp, capacity: scaled, tasks: taskList.length, totalTime }, ...prev]));
   };
 
   const handleRemoveTask = (id) => {
@@ -113,7 +119,7 @@ export default function CapacityAppPrototype() {
               <YAxis domain={[0, 200]} />
               <Tooltip formatter={(value, name) => name === 'totalTime' ? `${value} min` : `${value}%`} />
               {/* Neurotypical 100% Reference Line */}
-              <ReferenceLine y={normativeThreshold} label="Neurotypical 100%" stroke="#FFBC9A" strokeDasharray="4 4" />
+              <ReferenceLine y={normativeThreshold} label={{ value: 'Neurotypical 100%', position: 'insideTop' }} stroke="#FFBC9A" strokeDasharray="4 4" />
               <Line type="monotone" dataKey="capacity" stroke="#A8D0E6" strokeWidth={3} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
