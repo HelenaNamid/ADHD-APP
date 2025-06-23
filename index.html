@@ -1,0 +1,133 @@
+import React, { useState } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+} from 'recharts';
+
+// CapacityAppPrototype.js
+// Web app prototype with pastel colors, user-friendly structure, patterned background, history, charts, task durations, and extended capacity range
+
+export default function CapacityAppPrototype() {
+  const [capacity, setCapacity] = useState(0);
+  const [tasks, setTasks] = useState([]);
+  const [taskName, setTaskName] = useState('');
+  const [taskLoad, setTaskLoad] = useState(0);
+  const [taskDuration, setTaskDuration] = useState(0);
+  const [history, setHistory] = useState([]);
+
+  const normativeThreshold = 100; // Neurotypical reference level (100%)
+
+  const handleAddTask = () => {
+    if (!taskName || taskLoad <= 0 || taskDuration <= 0) return;
+    const newTask = { id: Date.now(), name: taskName, load: taskLoad, duration: taskDuration };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    setTaskName('');
+    setTaskLoad(0);
+    setTaskDuration(0);
+    updateMetrics(updatedTasks);
+  };
+
+  const updateMetrics = (taskList) => {
+    const totalLoad = taskList.reduce((sum, t) => sum + t.load, 0);
+    const totalTime = taskList.reduce((sum, t) => sum + t.duration, 0);
+    const scaled = Math.min(Math.round(totalLoad), 200); // allow up to 200%
+    setCapacity(scaled);
+    const now = new Date();
+    const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    setHistory(prev => [{ timestamp, capacity: scaled, tasks: taskList.length, totalTime }, ...prev]);
+  };
+
+  const handleRemoveTask = (id) => {
+    const remaining = tasks.filter(t => t.id !== id);
+    setTasks(remaining);
+    updateMetrics(remaining);
+  };
+
+  const totalTasks = tasks.length;
+  const totalLoad = tasks.reduce((sum, t) => sum + t.load, 0);
+  const totalTime = tasks.reduce((sum, t) => sum + t.duration, 0);
+  const averageLoad = totalTasks ? (totalLoad / totalTasks).toFixed(1) : 0;
+  const averageTime = totalTasks ? (totalTime / totalTasks).toFixed(1) : 0;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-pastel-pattern p-4">
+      <div className="max-w-3xl w-full bg-white bg-opacity-90 rounded-2xl shadow-xl p-6 backdrop-blur-md">
+        <h1 className="text-3xl font-bold text-pastel-purple mb-6 text-center">Your Work Capacity</h1>
+
+        {/* Overview */}
+        <div className="mb-6 grid grid-cols-5 gap-4 text-center">
+          <div className="bg-pastel-blue bg-opacity-30 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Total Tasks</p>
+            <p className="font-semibold text-pastel-purple text-2xl">{totalTasks}</p>
+          </div>
+          <div className="bg-pastel-green bg-opacity-30 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Average Load</p>
+            <p className="font-semibold text-pastel-purple text-2xl">{averageLoad}%</p>
+          </div>
+          <div className="bg-pastel-yellow bg-opacity-30 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Average Time (min)</p>
+            <p className="font-semibold text-pastel-purple text-2xl">{averageTime}</p>
+          </div>
+          <div className="bg-pastel-yellow bg-opacity-30 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Current Capacity</p>
+            <p className="font-semibold text-pastel-purple text-2xl">{capacity}%</p>
+          </div>
+          <div className="bg-pastel-orange bg-opacity-30 rounded-lg p-4">
+            <p className="text-sm text-gray-700">Neurotypical Baseline</p>
+            <p className="font-semibold text-pastel-purple text-2xl">{normativeThreshold}%</p>
+          </div>
+        </div>
+
+        {/* Add a new task */}
+        <div className="mb-6 grid grid-cols-3 gap-4">
+          <input type="text" value={taskName} onChange={e => setTaskName(e.target.value)} placeholder="Task Name" className="w-full p-2 rounded-md border-2 border-pastel-orange focus:outline-none" />
+          <input type="number" value={taskLoad} onChange={e => setTaskLoad(+e.target.value)} placeholder="Load (0–100)" className="w-full p-2 rounded-md border-2 border-pastel-orange focus:outline-none" />
+          <input type="number" value={taskDuration} onChange={e => setTaskDuration(+e.target.value)} placeholder="Duration (min)" className="w-full p-2 rounded-md border-2 border-pastel-orange focus:outline-none" />
+          <button onClick={handleAddTask} className="col-span-3 py-2 rounded-full bg-pastel-purple text-white hover:opacity-90 transition">Add Task</button>
+        </div>
+
+        {/* Task List */}
+        <ul className="mb-6 space-y-2 max-h-32 overflow-y-auto">
+          {tasks.map(task => (
+            <li key={task.id} className="flex justify-between items-center bg-pastel-yellow bg-opacity-30 p-2 rounded-md">
+              <span>{task.name} — {task.load}% — {task.duration}min</span>
+              <button onClick={() => handleRemoveTask(task.id)} className="text-pastel-orange font-bold">🗑️</button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Chart: Capacity Over Time (0–200%) */}
+        <div className="h-64 mb-6">
+          <h2 className="font-semibold text-gray-800 mb-2 text-center">Capacity Over Time</h2>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={[...history].reverse()}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="timestamp" tick={{ fontSize: 12 }} />
+              <YAxis domain={[0, 200]} />
+              <Tooltip formatter={(value, name) => name === 'totalTime' ? `${value} min` : `${value}%`} />
+              {/* Neurotypical 100% Reference Line */}
+              <ReferenceLine y={normativeThreshold} label="Neurotypical 100%" stroke="#FFBC9A" strokeDasharray="4 4" />
+              <Line type="monotone" dataKey="capacity" stroke="#A8D0E6" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Self-Reflection */}
+        <div className="mt-4 bg-pastel-yellow bg-opacity-30 rounded-lg p-4">
+          <h2 className="font-semibold text-pastel-orange mb-2">Self-Reflection</h2>
+          <textarea className="w-full h-24 p-2 rounded-md border-2 border-pastel-orange focus:outline-none" placeholder="What influenced your capacity today?" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Tailwind CSS in tailwind.config.js:
+// module.exports = { theme: { extend: { colors: { 'pastel-purple': '#CDA4DE', 'pastel-blue': '#A8D0E6', 'pastel-green': '#B0EACD', 'pastel-yellow': '#FFE5A3', 'pastel-orange': '#FFBC9A', }, backgroundImage: { 'pastel-pattern': "url('data:image/svg+xml;utf8,<svg width=20 height=20 xmlns=\\\"http://www.w3.org/2000/svg\\\"><circle cx=10 cy=10 r=2 fill=\\\"%23CDA4DE\\\"/></svg>')" } } } }
